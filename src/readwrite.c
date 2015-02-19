@@ -143,5 +143,31 @@ void write_sectors (int64_t start_sector, unsigned int num_sectors, void *from)
 }
 
 
+int main (int argc, char **argv)
+{
+    /* This is a sample program.  If you want to print out sector 57 of
+     * the disk, then run the program as:
+     *
+     *    ./readwrite disk 57
+     *
+     * You'll of course want to replace this with your own functions.
+     */
+
+    unsigned char buf[sector_size_bytes];        /* temporary buffer */
+    int           the_sector;                     /* IN: sector to read */
+
+    if ((device = open(argv[1], O_RDWR)) == -1) {
+        perror("Could not open device file");
+        exit(-1);
+    }
+
+    the_sector = atoi(argv[2]);
+    printf("Dumping sector %d:\n", the_sector);
+    read_sectors(the_sector, 1, buf);
+    print_sector(buf);
+
+    close(device);
+    return 0;
+}
 
 /* EOF */
