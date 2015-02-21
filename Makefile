@@ -8,6 +8,9 @@ VPATH = $(SOURCE)
 
 all: myfsck
 
+part_1:
+	./myfsck -p 1 -i disk
+
 myfsck: $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^
 
