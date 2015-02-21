@@ -107,12 +107,12 @@ void print_pt_info(partition_t *pt){
 
 int fsck_info_init(int pt_num)
 {
-	if (read_partition_info(pt_num, &pt_info) == -1)
-	{	
-		printf("read superblock info of partition %d failed\n", 
-		        partition_num);
-		return -1;
-	}
+	// if (read_partition_info(pt_num, &pt_info) == -1)
+	// {	
+	// 	printf("read superblock info of partition %d failed\n", 
+	// 	        partition_num);
+	// 	return -1;
+	// }
 	// if (read_superblock_info(pt_num) == -1)
 	// {
 	// 	printf("read superblock info of partition %d failed\n", 

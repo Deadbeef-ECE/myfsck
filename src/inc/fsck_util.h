@@ -15,7 +15,7 @@
 #define PARSE_SUCC	0
 #define PARSE_FAIL	-1
 
-typedef fsck_info{
+typedef struct fsck_info{
 	sblock_t sblock;
 	partition_t partition;
 }fsck_info_t;
