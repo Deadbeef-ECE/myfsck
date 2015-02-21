@@ -1,12 +1,12 @@
-/* $cmuPDL: readwrite.c,v 1.3 2010/02/27 11:38:39 rajas Exp $ */
-/* $cmuPDL: readwrite.c,v 1.4 2014/01/26 21:16:20 avjaltad Exp $ */
-/* readwrite.c
+/* @file: readwrite.c
  *
- * Code to read and write sectors to a "disk" file.
- * This is a support file for the "fsck" storage systems laboratory.
+ * @breif: Code to read and write sectors to a "disk" file.
+ *         This is a support file for the "fsck" storage systems laboratory.
  *
- * author: YOUR NAME HERE
+ * @author: Yuhang Jiang (yuhangj@andrew.cmu.edu)
+ * @bug: No known bugs
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>     /* for memcpy() */
@@ -22,10 +22,8 @@
 
 /* linux: lseek64 declaration needed here to eliminate compiler warning. */
 extern int64_t lseek64(int, int64_t, int);
-
+extern int device;
 const unsigned int sector_size_bytes = 512;
-
-static int device;  /* disk file descriptor */
 
 /* print_sector: print the contents of a buffer containing one sector.
  *
@@ -72,12 +70,12 @@ void read_sectors (int64_t start_sector, unsigned int num_sectors, void *into)
     int64_t sector_offset;
     ssize_t bytes_to_read;
 
-    if (num_sectors == 1) {
-        printf("Reading sector %"PRId64"\n", start_sector);
-    } else {
-        printf("Reading sectors %"PRId64"--%"PRId64"\n",
-               start_sector, start_sector + (num_sectors - 1));
-    }
+    // if (num_sectors == 1) {
+    //     printf("Reading sector %"PRId64"\n", start_sector);
+    // } else {
+    //     printf("Reading sectors %"PRId64"--%"PRId64"\n",
+    //            start_sector, start_sector + (num_sectors - 1));
+    // }
 
     sector_offset = start_sector * sector_size_bytes;
 
@@ -118,12 +116,12 @@ void write_sectors (int64_t start_sector, unsigned int num_sectors, void *from)
     int64_t sector_offset;
     ssize_t bytes_to_write;
 
-    if (num_sectors == 1) {
-        printf("Reading sector  %"PRId64"\n", start_sector);
-    } else {
-        printf("Reading sectors %"PRId64"--%"PRId64"\n",
-               start_sector, start_sector + (num_sectors - 1));
-    }
+    // if (num_sectors == 1) {
+    //     printf("Reading sector  %"PRId64"\n", start_sector);
+    // } else {
+    //     printf("Reading sectors %"PRId64"--%"PRId64"\n",
+    //            start_sector, start_sector + (num_sectors - 1));
+    // }
 
     sector_offset = start_sector * sector_size_bytes;
 
@@ -141,7 +139,5 @@ void write_sectors (int64_t start_sector, unsigned int num_sectors, void *from)
         exit(-1);
     }
 }
-
-
 
 /* EOF */

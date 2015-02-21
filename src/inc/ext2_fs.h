@@ -345,6 +345,7 @@ struct ext2_inode {
 /*
  * Structure of the super block
  */
+typedef struct ext2_super_block sblock_t;
 struct ext2_super_block {
     __u32   s_inodes_count;         /* Inodes count */
     __u32   s_blocks_count;         /* Blocks count */
@@ -403,6 +404,7 @@ struct ext2_super_block {
     __u16   s_padding1;
     __u32   s_reserved[204];        /* Padding to the end of the block */
 };
+
 
 #ifdef __KERNEL__
 #define EXT2_SB(sb)     (&((sb)->u.ext2_sb))
