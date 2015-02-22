@@ -17,4 +17,7 @@ typedef struct partition{
 	uint32_t length;
 }partition_t;
 
+
+
+
 #endif /* !_PARTITION_H_ */

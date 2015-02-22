@@ -25,7 +25,7 @@ extern int64_t lseek64(int, int64_t, int);
 
 const unsigned int sector_size_bytes = 512;
 
-static int device;  /* disk file descriptor */
+extern int device;  /* disk file descriptor */
 
 /* print_sector: print the contents of a buffer containing one sector.
  *
@@ -65,12 +65,12 @@ void print_sector (unsigned char *buf)
  * modifies:
  *   void *into
  */
-void read_sectors (int64_t start_sector, unsigned int num_sectors, void *into)
+void read_sectors (int64_t start_sector, ssize_t len, void *into)
 {
     ssize_t ret;
     int64_t lret;
     int64_t sector_offset;
-    ssize_t bytes_to_read;
+    //ssize_t bytes_to_read;
 
     // if (num_sectors == 1) {
     //     printf("Reading sector %"PRId64"\n", start_sector);
@@ -87,16 +87,43 @@ void read_sectors (int64_t start_sector, unsigned int num_sectors, void *into)
         exit(-1);
     }
 
-    bytes_to_read = sector_size_bytes * num_sectors;
-
-    if ((ret = read(device, into, bytes_to_read)) != bytes_to_read) {
+    //bytes_to_read = sector_size_bytes * num_sectors;
+    printf("HHHHHHH LEN:%d\n",(int) len);
+    if ((ret = read(device, into, len)) != len) {
         fprintf(stderr, "Read sector %"PRId64" length %d failed: "
-                "returned %"PRId64"\n", start_sector, num_sectors, ret);
+                "returned %"PRId64"\n", start_sector, len, ret);
         exit(-1);
     }
 }
 
+// void read_sector_with_len(int64_t start_sector, ssize_t len, void *into)
+// {
+//     ssize_t ret;
+//     int64_t lret;
+//     int64_t sector_offset;
 
+//     // if (num_sectors == 1) {
+//     //     printf("Reading sector %"PRId64"\n", start_sector);
+//     // } else {
+//     //     printf("Reading sectors %"PRId64"--%"PRId64"\n",
+//     //            start_sector, start_sector + (num_sectors - 1));
+//     // }
+
+//     sector_offset = start_sector * sector_size_bytes;
+
+//     if ((lret = lseek64(device, sector_offset, SEEK_SET)) != sector_offset) {
+//         fprintf(stderr, "Seek to position %"PRId64" failed: "
+//                 "returned %"PRId64"\n", sector_offset, lret);
+//         exit(-1);
+//     }
+
+
+//     if ((ret = read(device, into, len)) != len) {
+//         fprintf(stderr, "Read sector %"PRId64" length %d failed: "
+//                 "returned %"PRId64"\n", start_sector, len, ret);
+//         exit(-1);
+//     }
+// }
 /* write_sectors: write a buffer into a specified number of sectors.
  *
  * inputs:

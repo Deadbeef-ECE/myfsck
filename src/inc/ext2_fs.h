@@ -154,6 +154,7 @@ struct ext2_acl_entry   /* Access Control List Entry */
 /*
  * Structure of a blocks group descriptor
  */
+typedef struct ext2_group_desc grp_desc_t;
 struct ext2_group_desc
 {
     __u32   bg_block_bitmap;        /* Blocks bitmap block */
@@ -223,6 +224,7 @@ struct ext2_group_desc
 /*
  * Structure of an inode on the disk
  */
+typedef struct ext2_inode inode_t;
 struct ext2_inode {
     __u16   i_mode;         /* File mode */
     __u16   i_uid;          /* Low 16 bits of Owner Uid */

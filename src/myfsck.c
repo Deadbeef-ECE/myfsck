@@ -19,16 +19,41 @@ void print_usage(){
     return;
 }
 
+int do_fsck(partition_t *pt, int fix_pt_num){
+    if(fix_pt_num >= 0){
+        if(fix_pt_num >0){
+            do_fix(fix_pt_num);
+        }else if(fix_pt_num == 0){
+             int i = 1;
+             while(1){
+                 if(parse_pt_info(pt, i) == -1)
+                     break;
+                 if(pt->type == EXT_2)    
+                     do_fix(i);
+                 i++;
+             }
+        }
+    }else{
+        print_usage();
+    }
+    return -1;
+}
+
 int main (int argc, char **argv)
 {
-    printf("Hello from myfsck!\n");
+    //printf("Hello from myfsck!\n");
     
     char* disk_name = NULL;
     uint32_t pt_num = 0;
+    uint32_t fix_pt_num = 0;
     int c;
-
+    int fsck = 0;
     while((c = getopt(argc, argv, ":p:i")) != -1){
         switch(c){
+            // case 'f':
+            //     fsck = 1;
+            //     fix_pt_num = atoi(optarg);
+            //     break;
             case 'p':
                 pt_num = atoi(optarg);
                 break;
@@ -45,23 +70,31 @@ int main (int argc, char **argv)
         exit(-1);
     }
 
-    fprintf(stdout, "get pt_num[%d] and disk_name[%s]\n", pt_num, disk_name);
+    //fprintf(stdout, "get pt_num[%d] and disk_name[%s]\n", pt_num, disk_name);
 
     if((device = open(disk_name, O_RDWR)) == -1){
         fprintf(stderr, "ERROR: Cannot open the file!\n");
         exit(-1);
     }
-
-    if(pt_num > 0){
-        partition_t pt;
-        if(parse_pt_info(&pt, pt_num) == -1){
-            close(device);
-            fprintf(stdout, "-1\n");
-            exit(-1);
-        }
-        print_pt_info(&pt);
-    }
     
+    partition_t pt;
+    if(fsck == 1){
+        do_fsck(&pt, fix_pt_num);
+        //fsck_info_init(pt_num);
+    }else{
+        if(pt_num > 0){
+            if(parse_pt_info(&pt, pt_num) == -1){
+                printf("-1\n");
+                close(device);
+                exit(-1);
+            }
+            print_pt_info(&pt);
+            do_fsck(&pt, pt_num);
+        }
+    }
+
+    close(device);
     return 0;
 }
+
 
