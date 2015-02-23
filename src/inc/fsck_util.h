@@ -4,19 +4,35 @@
 #include "partition.h"
 #include "ext2_fs.h"
 
-#define SECT_SIZE	512
+#define SECT_SIZE		512
 
 /** Macros for MBR */
-#define PT_E_NUM	4
-#define TYPE_OFFSET	0x04
-#define SECT_OFFSET 0x08
-#define LEN_OFFSET	0x0c
+#define PT_E_NUM		4
+#define TYPE_OFFSET		0x04
+#define SECT_OFFSET 	0x08
+#define LEN_OFFSET		0x0c
+
+/** Macros for directory entry */
+#define REC_LEN_OFFSET		0x04
+#define NAME_LEN_OFFSET		0x06
+#define FILE_TYPE_OFFSET	0x07
+#define NAME_OFFSET 		0x08
 
 #define PARSE_SUCC	0
 #define PARSE_FAIL	-1
 
 #define INIT_SUCC	0
 #define INIT_FAIL	-1
+
+
+#define EXT2_ISSOCK(m) (((m)&(0xf000)) == (EXT2_S_IFSOCK))
+#define EXT2_ISLNK(m) (((m)&(0xf000)) == (EXT2_S_IFLNK))
+#define EXT2_ISREG(m) (((m)&(0xf000)) == (EXT2_S_IFREG))
+#define EXT2_ISBLK(m) (((m)&(0xf000)) == (EXT2_S_IFBLK))
+#define EXT2_ISDIR(m) (((m)&(0xf000)) == (EXT2_S_IFDIR))
+#define EXT2_ISCHR(m) (((m)&(0xf000)) == (EXT2_S_IFCHR))
+#define EXT2_ISFIFO(m) (((m)&(0xf000)) == (EXT2_S_IFIFO))
+
 
 typedef struct fsck_info{
 	sblock_t sblock;
@@ -35,6 +51,7 @@ int parse_blkgrp_desc_tb(fsck_info_t* fsck_info, uint32_t pt_num);
 int fsck_info_init(fsck_info_t *fsck_info, uint32_t pt_num);
 void do_fix(int fix_pt_num);
 
+
 int get_block_size(sblock_t *sblock);
 int get_inode_size(sblock_t *sblock);
 int get_blocks_num(sblock_t *sblock);
@@ -43,7 +60,27 @@ int get_inodes_num(sblock_t *sblock);
 int get_inds_per_group(sblock_t *sblock);
 int get_groups_num(sblock_t *sblock);
 void debug_sblock(fsck_info_t *fsck_info);
-void dump_grp_desc(grp_desc_t *entry);
+void dump_grp_desc(grp_desc_t *entry, int num);
 
+void trav_dir(fsck_info_t *fsck_info, uint32_t inode_num, uint32_t parent);
+int compute_inode_addr(fsck_info_t *fsck_info, uint32_t inode_num);
+void trav_direct_blk(fsck_info_t *fsck_info, 
+					int block_offset, 
+					int iblock_num, 
+					uint8_t* buf, 
+					uint32_t current_dir, 
+					uint32_t parent_dir);
 
+void trav_indirect_blk( fsck_info_t* fsck_info,
+						uint32_t* singly_buf, 
+                    	uint32_t current_dir, 
+                    	uint32_t parent_dir);
+void trav_dindirect_blk(fsck_info_t* fsck_info,
+						uint32_t* doubly_buf, 
+                    	uint32_t current_dir, 
+                    	uint32_t parent_dir);
+void trav_tindirect_blk(fsck_info_t* fsck_info,
+						unsigned int* triply_buf, 
+                     	unsigned int current_dir, 
+                     	unsigned int parent_dir);
 #endif /* !_FSCK_UTIL_H_ */

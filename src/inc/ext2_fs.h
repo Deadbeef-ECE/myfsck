@@ -511,6 +511,7 @@ struct ext2_dir_entry {
  * bigger than 255 chars, it's safe to reclaim the extra byte for the
  * file_type field.
  */
+typedef struct ext2_dir_entry_2 dir_entry_t;
 struct ext2_dir_entry_2 {
     __u32   inode;                  /* Inode number */
     __u16   rec_len;                /* Directory entry length */

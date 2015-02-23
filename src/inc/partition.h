@@ -13,7 +13,7 @@
 typedef struct partition{
 	uint32_t pt_num;
 	uint32_t type;
-	uint32_t sec_addr;
+	uint32_t start_sec;
 	uint32_t length;
 }partition_t;
 

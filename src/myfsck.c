@@ -48,12 +48,12 @@ int main (int argc, char **argv)
     uint32_t fix_pt_num = 0;
     int c;
     int fsck = 0;
-    while((c = getopt(argc, argv, ":p:i")) != -1){
+    while((c = getopt(argc, argv, ":f:p:i")) != -1){
         switch(c){
-            // case 'f':
-            //     fsck = 1;
-            //     fix_pt_num = atoi(optarg);
-            //     break;
+            case 'f':
+                fsck = 1;
+                fix_pt_num = atoi(optarg);
+                break;
             case 'p':
                 pt_num = atoi(optarg);
                 break;
@@ -89,7 +89,7 @@ int main (int argc, char **argv)
                 exit(-1);
             }
             print_pt_info(&pt);
-            do_fsck(&pt, pt_num);
+            //do_fsck(&pt, pt_num);
         }
     }
 

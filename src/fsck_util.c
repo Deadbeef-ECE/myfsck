@@ -12,6 +12,8 @@
 #include "readwrite.h"
 #include "ext2_fs.h"
 
+//#define DEBUG_DESC_TABLE
+
 extern int device;
 
 int parse_pt_info(partition_t *pt, uint32_t pt_num)
@@ -33,7 +35,7 @@ int parse_pt_info(partition_t *pt, uint32_t pt_num)
 	if(pt_num <= PT_E_NUM){
 		pt_entry_offset = PT_OFFSET + (pt_num - 1) * PT_ENTRY_SZ;
 		pt->type = buf[pt_entry_offset + TYPE_OFFSET];
-		pt->sec_addr = *(uint32_t*)(buf+ pt_entry_offset+ SECT_OFFSET);
+		pt->start_sec = *(uint32_t*)(buf+ pt_entry_offset+ SECT_OFFSET);
 		pt->length =  *(uint32_t*)(buf+ pt_entry_offset+ LEN_OFFSET);
 		return PARSE_SUCC;
 	}
@@ -78,7 +80,7 @@ int parse_pt_info(partition_t *pt, uint32_t pt_num)
 	read_sectors(cur_ebr_sect, 1 * SECT_SIZE, buf);
 	//print_sector(buf);
 	pt->type = buf[PT_OFFSET + TYPE_OFFSET];
-	pt->sec_addr = cur_ebr_sect + *(uint32_t*)(buf+ PT_OFFSET+ SECT_OFFSET);
+	pt->start_sec = cur_ebr_sect + *(uint32_t*)(buf+ PT_OFFSET+ SECT_OFFSET);
 	pt->length =  *(uint32_t*)(buf+ PT_OFFSET+ LEN_OFFSET);
 	
 	return PARSE_SUCC;
@@ -87,7 +89,7 @@ int parse_pt_info(partition_t *pt, uint32_t pt_num)
 void print_pt_info(partition_t *pt)
 {
 	printf("0x%02X %d %d\n", 
-		pt->type, (int)pt->sec_addr, (int)pt->length);
+		pt->type, (int)pt->start_sec, (int)pt->length);
 }
 
 void do_fix(int fix_pt_num)
@@ -115,7 +117,7 @@ void do_fix(int fix_pt_num)
 		fsck_info->inode_map[i] = 0;
 	}
 
-	//trav_dir();
+	trav_dir(fsck_info, EXT2_ROOT_INO, EXT2_ROOT_INO);
 
 
 	return;
@@ -145,7 +147,7 @@ int fsck_info_init(fsck_info_t *fsck_info, uint32_t pt_num)
 
 int parse_sblock(fsck_info_t* fsck_info, uint32_t pt_num)
 {
-	read_sectors(fsck_info->pt.sec_addr + 1024/SECT_SIZE, 
+	read_sectors(fsck_info->pt.start_sec + 1024/SECT_SIZE, 
 		sizeof(sblock_t), &fsck_info->sblock);
 	return 1;
 }
@@ -166,45 +168,244 @@ int parse_blkgrp_desc_tb(fsck_info_t* fsck_info, uint32_t pt_num){
 	}
 
 	/* read block group table from sector 4 of the partition */
-	read_sectors(fsck_info->pt.sec_addr + 2048/SECT_SIZE, 
+	read_sectors(fsck_info->pt.start_sec + 2048/SECT_SIZE, 
 	            size, fsck_info->blkgrp_desc_tb);
     
-    printf("start_sec: %d\n", fsck_info->pt.sec_addr + 2048/512);
+    printf("start_sec: %d\n", fsck_info->pt.start_sec + 2048/512);
     printf("size: %d\n", size);
-	dump_grp_desc(fsck_info->blkgrp_desc_tb);
+
+	//dump_grp_desc(fsck_info->blkgrp_desc_tb, size/sizeof(grp_desc_t));
 
 	return PARSE_SUCC;
 }
 
-void dump_grp_desc(grp_desc_t *entry){
-	printf("\n************ group descriptor ****************\n");
-	printf("** bg_block_bitmap = %d\n",(int) entry->bg_block_bitmap);
-	printf("** bg_inode_bitmap = %d\n", (int)entry->bg_inode_bitmap);
-	printf("** bg_inode_table = %d\n", (int)entry->bg_inode_table);
-	printf("** bg_free_blocks_count = %d\n", (int)entry->bg_free_blocks_count);
-	printf("** bg_free_inodes_count = %d\n", (int)entry->bg_free_inodes_count);
-	printf("** bg_used_dirs_count = %d\n", (int)entry->bg_used_dirs_count);
-	printf("********************************************\n\n");
+void dump_grp_desc(grp_desc_t *entry, int num)
+{	
+	int i = 0;
+	for(; i < num; i++){
+		printf("\n********** group descriptor[%d] **************\n", i);
+		printf("** bg_block_bitmap = %d\n",(int) entry[i].bg_block_bitmap);
+		printf("** bg_inode_bitmap = %d\n", (int)entry[i].bg_inode_bitmap);
+		printf("** bg_inode_table = %d\n", (int)entry[i].bg_inode_table);
+		printf("** bg_free_blocks_count = %d\n", (int)entry[i].bg_free_blocks_count);
+		printf("** bg_free_inodes_count = %d\n", (int)entry[i].bg_free_inodes_count);
+		printf("** bg_used_dirs_count = %d\n", (int)entry[i].bg_used_dirs_count);
+		printf("********************************************\n\n");
+	}
+	
 	return;
 }
 
-void traverse_dir(uint32_t inode_num, uint32_t parent)
+void trav_dir(fsck_info_t *fsck_info, uint32_t inode_num, uint32_t parent)
 {
+	inode_t inode;
+	int inode_addr = compute_inode_addr(fsck_info, inode_num);
+
+	//get inode_addr of certain inode_num
+	read_bytes(inode_addr, sizeof(inode_t), &inode);
+
+	// Check if this is a directory or not
+	if(!EXT2_ISDIR(inode.i_mode))
+		return;
+
+	int block_size = get_block_size(&fsck_info->sblock);
+	uint8_t buf[block_size];
+	int i = 0;
+	for(; i < EXT2_NDIR_BLOCKS; i++){
+		if(inode.i_block[i] <= 0)
+			continue;
+
+		int disk_offset = fsck_info->pt.start_sec * SECT_SIZE +
+							inode.i_block[i] * block_size;
+		
+		// Read one direct block of inode
+		read_bytes(disk_offset, block_size, buf);
+
+		trav_direct_blk(fsck_info, disk_offset, i, buf, inode_num, parent);
+	}
+	/* Traversal indirect block */
+	read_bytes(fsck_info->pt.start_sec * SECT_SIZE + 
+				inode.i_block[EXT2_IND_BLOCK] * block_size, 
+			    block_size, buf);
+	trav_indirect_blk(fsck_info, (uint32_t*)buf, inode_num, parent);
+	
+	/* Traversal doubly indirect block */
+	read_bytes(fsck_info->pt.start_sec * SECT_SIZE + 
+				inode.i_block[EXT2_DIND_BLOCK] * block_size, 
+			    block_size, buf);
+	trav_dindirect_blk(fsck_info, (uint32_t*)buf, inode_num, parent);
+	
+	/* Traversal triply indirect block */
+	read_bytes(fsck_info->pt.start_sec * SECT_SIZE + 
+				inode.i_block[EXT2_TIND_BLOCK] * block_size, 
+			    block_size, buf);
+	trav_tindirect_blk(fsck_info, (uint32_t*)buf, inode_num, parent);
 
 	return;
 }
 
+void trav_direct_blk(fsck_info_t *fsck_info, 
+					int block_offset, 
+					int iblock_num, 
+					uint8_t* buf, 
+					uint32_t current_dir, 
+					uint32_t parent_dir)
+{
+	dir_entry_t dir_entry;
+
+	int dir_entry_offset = 0;
+	int block_size = get_block_size(&fsck_info->sblock);
+
+	int cnt = 1;
+	while(dir_entry_offset < block_size)
+	{
+		/* no more directory entries in this block */
+		dir_entry.inode = *(__u32*)(buf + dir_entry_offset);
+		dir_entry.rec_len = *(__u16*)(buf + dir_entry_offset + REC_LEN_OFFSET);
+		dir_entry.name_len = *(__u8*)(buf + dir_entry_offset + NAME_LEN_OFFSET);
+		dir_entry.file_type = *(__u8*)(buf + dir_entry_offset + FILE_TYPE_OFFSET);
+		memcpy(dir_entry.name, buf + dir_entry_offset + NAME_OFFSET, dir_entry.name_len);
+		dir_entry.name[dir_entry.name_len + 1] = '\0';
+		
+		/* check '.' entry */
+		if (cnt == 1 && iblock_num == 0)
+		{
+			if(//strcmp(dir_entry.name, ".") != 0 || 
+			          dir_entry.inode != current_dir)
+			{
+				printf("error in \".\" of dir %d should be %d\n", 
+				        dir_entry.inode, current_dir);
+				/* write back to disk */
+				write_bytes(block_offset + dir_entry_offset,
+						sizeof(uint32_t), &current_dir);
+
+				/* update block buf */
+				*(__u32*)(buf + dir_entry_offset) = current_dir;
+			}
+		}
+		/* check '..' entry */
+		if (cnt == 2 && iblock_num == 0)
+		{
+			if(//strcmp(dir_entry.name, "..") != 0 || 
+			          dir_entry.inode != parent_dir)
+			{
+				printf("error \"..\" in dir %d, should be %d\n", 
+				        current_dir, parent_dir);
+				/* write back to disk */
+				write_bytes(block_offset + dir_entry_offset,
+						sizeof(uint32_t), &parent_dir);
+
+				/* update block buf */
+				*(__u32*)(buf + dir_entry_offset) = parent_dir;
+			}
+		}
+		/* get inode again after possible fix */
+		dir_entry.inode = *(__u32*)(buf + dir_entry_offset);
+		
+		int inodes_num = get_inodes_num(&fsck_info->sblock);
+		/* update local inode map */
+		if (dir_entry.inode <= inodes_num)
+		{
+			fsck_info->inode_map[dir_entry.inode] += 1;
+		}
+		
+		/* recursively traverse sub-directory in this folder */
+		if (dir_entry.file_type == EXT2_FT_DIR
+		  && fsck_info->inode_map[dir_entry.inode] <= 1
+		  && (cnt>2 || iblock_num > 0) )
+			trav_dir(fsck_info, dir_entry.inode, current_dir);
+		
+		dir_entry_offset += dir_entry.rec_len;
+		cnt++;
+	}
+	return;
+}
+
+void trav_indirect_blk( fsck_info_t* fsck_info,
+						uint32_t* singly_buf, 
+                    	uint32_t current_dir, 
+                    	uint32_t parent_dir)
+{
+	int block_size = get_block_size(&fsck_info->sblock);
+	uint8_t direct_buf[block_size];
+	int i = 0;
+	for(; i < (block_size / 4); i++)
+	{
+		if (singly_buf[i] == 0)
+			break;
+
+		int disk_offset = fsck_info->pt.start_sec * SECT_SIZE 
+						+ singly_buf[i] * block_size;
+		read_bytes(disk_offset, block_size, direct_buf);
+
+		trav_direct_blk(fsck_info, disk_offset, 1, direct_buf, 
+						current_dir, parent_dir);
+	}
+	return;
+}
 
 
+void trav_dindirect_blk(fsck_info_t* fsck_info,
+						uint32_t* doubly_buf, 
+                    	uint32_t current_dir, 
+                    	uint32_t parent_dir)
+{
+	int block_size = get_block_size(&fsck_info->sblock);
+	uint32_t singly_buf[block_size];
 
+	int i = 0;
+	for(; i < (block_size / 4); i++)
+	{
+		if (doubly_buf[i] == 0)
+			break;
+		int disk_offset = fsck_info->pt.start_sec * SECT_SIZE 
+						+ doubly_buf[i] * block_size;
 
+		read_bytes(disk_offset, block_size, singly_buf);
 
+		trav_indirect_blk(fsck_info, singly_buf, current_dir, parent_dir);
+	}
+	return;
+}
 
+void trav_tindirect_blk(fsck_info_t* fsck_info,
+						unsigned int* triply_buf, 
+                     	unsigned int current_dir, 
+                     	unsigned int parent_dir)
+{
+	int block_size = get_block_size(&fsck_info->sblock);
+	uint32_t doubly_buf[block_size];
+	int i = 0;
+	for(; i < (block_size / 4); i++)
+	{
+		if (triply_buf[i] == 0)
+			break;
+		int disk_offset = fsck_info->pt.start_sec * SECT_SIZE 
+						+ triply_buf[i] * block_size;
 
+		read_bytes(disk_offset, block_size, doubly_buf);
+		trav_dindirect_blk(fsck_info, doubly_buf, current_dir, parent_dir);
+	}
+	return;
+}
 
+int compute_inode_addr(fsck_info_t *fsck_info, uint32_t inode_num)
+{
+	//start from 1
+	int inodes_per_group = get_inds_per_group(&fsck_info->sblock);
+	int group_idx = (inode_num - 1) / inodes_per_group;
+	int inode_idx = (inode_num - 1) % inodes_per_group;
 
+	int pt_base = fsck_info->pt.start_sec * SECT_SIZE;
+	int table_offset = get_block_size(&fsck_info->sblock)
+				*fsck_info->blkgrp_desc_tb[group_idx].bg_inode_table;
+	int inode_offset = inode_idx * get_inode_size(&fsck_info->sblock);
 
-
+	int ret = pt_base + table_offset + inode_offset;
+	//printf("@@@@ret:%d\n", ret);
+	
+	return ret;
+}
 
 
 int get_block_size(sblock_t *sblock)
@@ -246,8 +447,8 @@ void debug_sblock(fsck_info_t *fsck_info)
 {
 	printf("\n************ partition[%d] ****************\n", 
 		fsck_info->pt.pt_num);
-	printf("** start sector = %d  base = %d\n", fsck_info->pt.sec_addr, 
-		fsck_info->pt.sec_addr * 512);
+	printf("** start sector = %d  base = %d\n", fsck_info->pt.start_sec, 
+		fsck_info->pt.start_sec * 512);
 	printf("** block size = %d\n", get_block_size(&fsck_info->sblock));
 	printf("** inode size = %d\n**\n", get_inode_size(&fsck_info->sblock));
 	printf("** number of blocks = %d\n", get_blocks_num(&fsck_info->sblock));
