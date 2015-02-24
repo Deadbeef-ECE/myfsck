@@ -80,7 +80,7 @@ void trav_dindirect_blk(fsck_info_t* fsck_info,
                     	uint32_t current_dir, 
                     	uint32_t parent_dir);
 void trav_tindirect_blk(fsck_info_t* fsck_info,
-						unsigned int* triply_buf, 
-                     	unsigned int current_dir, 
-                     	unsigned int parent_dir);
+						uint32_t* triply_buf, 
+                     	uint32_t current_dir, 
+                     	uint32_t parent_dir);
 #endif /* !_FSCK_UTIL_H_ */

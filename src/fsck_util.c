@@ -11,6 +11,7 @@
 #include "partition.h"
 #include "readwrite.h"
 #include "ext2_fs.h"
+#include "pass2.h"
 
 //#define DEBUG_DESC_TABLE
 
@@ -48,7 +49,7 @@ int parse_pt_info(partition_t *pt, uint32_t pt_num)
 	}
 
 	if(ebr_flag == 0){
-		//fprintf(stderr, "ERORR: Cannot find ebr!\n");
+		fprintf(stderr, "ERORR: Cannot find ebr!\n");
 		return PARSE_FAIL;
 	}
 
@@ -92,6 +93,15 @@ void print_pt_info(partition_t *pt)
 		pt->type, (int)pt->start_sec, (int)pt->length);
 }
 
+void clear_local_inode_map(fsck_info_t *fsck_info){
+	int i = 0;
+	int inode_num = get_inodes_num(&fsck_info->sblock);
+	for(; i <= inode_num; i++){
+		fsck_info->inode_map[i] = 0;
+	} 
+	return;
+}
+
 void do_fix(int fix_pt_num)
 {
 	fsck_info_t *fsck_info = malloc(sizeof(fsck_info_t));
@@ -112,16 +122,20 @@ void do_fix(int fix_pt_num)
 		fprintf(stderr, "ERORR: Allocate memory for fsck_info->inode_map failed!\n");
 		return;
 	}
-	int i = 0;
-	for(; i <= inodes_num; i++){
-		fsck_info->inode_map[i] = 0;
-	}
 
+	clear_local_inode_map(fsck_info);
 	trav_dir(fsck_info, EXT2_ROOT_INO, EXT2_ROOT_INO);
+	
+	pass2_fix_unref_inode(fsck_info);
 
+	//printf("why?\n");
+	clear_local_inode_map(fsck_info);
+	trav_dir(fsck_info, EXT2_ROOT_INO, EXT2_ROOT_INO);
 
 	return;
 }
+
+
 
 int fsck_info_init(fsck_info_t *fsck_info, uint32_t pt_num)
 {
@@ -171,8 +185,8 @@ int parse_blkgrp_desc_tb(fsck_info_t* fsck_info, uint32_t pt_num){
 	read_sectors(fsck_info->pt.start_sec + 2048/SECT_SIZE, 
 	            size, fsck_info->blkgrp_desc_tb);
     
-    printf("start_sec: %d\n", fsck_info->pt.start_sec + 2048/512);
-    printf("size: %d\n", size);
+    // printf("start_sec: %d\n", fsck_info->pt.start_sec + 2048/512);
+    // printf("size: %d\n", size);
 
 	//dump_grp_desc(fsck_info->blkgrp_desc_tb, size/sizeof(grp_desc_t));
 
@@ -255,7 +269,8 @@ void trav_direct_blk(fsck_info_t *fsck_info,
 
 	int dir_entry_offset = 0;
 	int block_size = get_block_size(&fsck_info->sblock);
-
+	int inodes_num = get_inodes_num(&fsck_info->sblock);
+	//printf("inodes_num:%d\n", inodes_num);
 	int cnt = 1;
 	while(dir_entry_offset < block_size)
 	{
@@ -302,11 +317,14 @@ void trav_direct_blk(fsck_info_t *fsck_info,
 		/* get inode again after possible fix */
 		dir_entry.inode = *(__u32*)(buf + dir_entry_offset);
 		
-		int inodes_num = get_inodes_num(&fsck_info->sblock);
+		
 		/* update local inode map */
 		if (dir_entry.inode <= inodes_num)
 		{
 			fsck_info->inode_map[dir_entry.inode] += 1;
+		}
+		if(dir_entry.inode > inodes_num){
+			fprintf(stderr, "WTF????????????\n");
 		}
 		
 		/* recursively traverse sub-directory in this folder */
@@ -369,9 +387,9 @@ void trav_dindirect_blk(fsck_info_t* fsck_info,
 }
 
 void trav_tindirect_blk(fsck_info_t* fsck_info,
-						unsigned int* triply_buf, 
-                     	unsigned int current_dir, 
-                     	unsigned int parent_dir)
+						uint32_t* triply_buf, 
+                     	uint32_t current_dir, 
+                     	uint32_t parent_dir)
 {
 	int block_size = get_block_size(&fsck_info->sblock);
 	uint32_t doubly_buf[block_size];
@@ -402,7 +420,6 @@ int compute_inode_addr(fsck_info_t *fsck_info, uint32_t inode_num)
 	int inode_offset = inode_idx * get_inode_size(&fsck_info->sblock);
 
 	int ret = pt_base + table_offset + inode_offset;
-	//printf("@@@@ret:%d\n", ret);
 	
 	return ret;
 }

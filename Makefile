@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Werror -I./src/inc
-OBJ = readwrite.o myfsck.o fsck_util.o
+OBJ = readwrite.o myfsck.o fsck_util.o pass2.o
 
 SOURCE = src
 VPATH = $(SOURCE)
