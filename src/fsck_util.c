@@ -173,7 +173,7 @@ int do_fix(int fix_pt_num)
 	}
 
 	/* Validate pass1 */
-	pass1_correct_dir(fsck_info, EXT2_ROOT_INO, EXT2_ROOT_INO);
+	pass1_correct_dir(fsck_info);
 	
 	/* Validate pass2 */
 	pass2_fix_unref_inode(fsck_info);

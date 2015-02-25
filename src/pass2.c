@@ -1,3 +1,11 @@
+/* @file: pass2.c
+ *
+ * @breif: Functions to validate pass2
+ *
+ * @author: Yuhang Jiang (yuhangj@andrew.cmu.edu)
+ * @bug: No known bugs
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,30 +31,34 @@ void pass2_fix_unref_inode(fsck_info_t *fsck_info)
 	int i;
 	int parent_inode = 0;
 	int inodes_num = get_inodes_num(&fsck_info->sblock);
+	
 	/* get number of referenced inodes */
 	for (i = 1; i <= inodes_num; i++)
 	{
-		/* get inode addr (in byte) from inode number */
+		/* Get inode address from inode number */
 		inode_addr = compute_inode_addr(fsck_info, i);
 		
-		/* read inode information from inode table entry */
+		/* Read inode information from inode table entry */
 		read_bytes(inode_addr, sizeof(inode_t), &inode);
 		
 		if (fsck_info->inode_map[i] == 0 && inode.i_links_count > 0)
 		{
-			// If not a directory, put it into lost+found
+			/* If not a directory, put it into lost+found */
 			if (!EXT2_ISDIR(inode.i_mode)){
 				printf("Find ERROR: putting %d into /lost+found\n", i);
 				add_lostfound(fsck_info, i);
 			}else{
 				parent_inode = get_parent_inode(fsck_info, &inode);
-				/* get inode addr (in byte) from inode number */
+				
+				/* Get inode address from inode number */
 				int p_inode_addr = compute_inode_addr(fsck_info, parent_inode);
 				inode_t p_inode;
-				/* read inode information from inode table entry */
+				
+				/* Read inode information from inode table entry */
 				read_bytes(p_inode_addr, sizeof(inode_t), &p_inode);
 				if(!(fsck_info->inode_map[parent_inode] == 0 
-					&& p_inode.i_links_count > 0)){
+					&& p_inode.i_links_count > 0))
+				{
 					printf("Find ERROR: putting[%d] into /lost+found\n", i);
 					add_lostfound(fsck_info, i);
 				}
