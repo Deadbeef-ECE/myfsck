@@ -167,7 +167,8 @@ int do_fix(int fix_pt_num)
 	int inodes_num = get_inodes_num(&fsck_info->sblock);
 	fsck_info->inode_map = (int*)malloc(sizeof(int) * (1+inodes_num));
 	if(fsck_info->inode_map == NULL){
-		fprintf(stderr, "ERORR: Allocate memory for fsck_info->inode_map failed!\n");
+		fprintf(stderr, 
+			"ERORR: Allocate memory for fsck_info->inode_map failed!\n");
 		destroy_fsck_info(fsck_info);
 		return FIX_FAIL;
 	}
@@ -220,7 +221,8 @@ int fsck_info_init(fsck_info_t *fsck_info, uint32_t pt_num)
 	/* Parse the block group descriptor table */
 	if ((parse_blkgrp_desc_tb(fsck_info, pt_num)) == -1)
 	{
-		fprintf(stderr, "ERROR: Read blkgrp descriptor table of pat[%d] failed!\n",pt_num);
+		fprintf(stderr, 
+			"ERROR: Read blkgrp descriptor table of pat[%d] failed!\n",pt_num);
 		return INIT_FAIL;
 	}
 	return INIT_SUCC;
@@ -305,9 +307,12 @@ void dump_grp_desc(grp_desc_t *entry, int num)
 		printf("** bg_block_bitmap = %d\n",(int) entry[i].bg_block_bitmap);
 		printf("** bg_inode_bitmap = %d\n", (int)entry[i].bg_inode_bitmap);
 		printf("** bg_inode_table = %d\n", (int)entry[i].bg_inode_table);
-		printf("** bg_free_blocks_count = %d\n", (int)entry[i].bg_free_blocks_count);
-		printf("** bg_free_inodes_count = %d\n", (int)entry[i].bg_free_inodes_count);
-		printf("** bg_used_dirs_count = %d\n", (int)entry[i].bg_used_dirs_count);
+		printf("** bg_free_blocks_count = %d\n", 
+			(int)entry[i].bg_free_blocks_count);
+		printf("** bg_free_inodes_count = %d\n", 
+			(int)entry[i].bg_free_inodes_count);
+		printf("** bg_used_dirs_count = %d\n", 
+			(int)entry[i].bg_used_dirs_count);
 		printf("********************************************\n\n");
 	}
 	return;
@@ -430,9 +435,11 @@ void debug_sblock(fsck_info_t *fsck_info)
 	printf("** block size = %d\n", get_block_size(&fsck_info->sblock));
 	printf("** inode size = %d\n**\n", get_inode_size(&fsck_info->sblock));
 	printf("** number of blocks = %d\n", get_blocks_num(&fsck_info->sblock));
-	printf("** blocks per group = %d\n**\n", get_blks_per_group(&fsck_info->sblock));
+	printf("** blocks per group = %d\n**\n", 
+		get_blks_per_group(&fsck_info->sblock));
 	printf("** number of inodes = %d\n", get_inodes_num(&fsck_info->sblock));
-	printf("** inodes per group = %d\n**\n", get_inds_per_group(&fsck_info->sblock));
+	printf("** inodes per group = %d\n**\n", 
+		get_inds_per_group(&fsck_info->sblock));
 	printf("** number of groups = %d\n", get_groups_num(&fsck_info->sblock));
 	printf("********************************************\n\n");
 	return;

@@ -28,7 +28,8 @@ int device;
  *  @return void
  */
 void print_usage(){
-    fprintf(stdout, "Usage: ./myfsck -p <partition number> -i /path/to/disk/image\n");
+    fprintf(stdout, 
+        "Usage: ./myfsck -p <partition number> -i /path/to/disk/image\n");
     return;
 }
 

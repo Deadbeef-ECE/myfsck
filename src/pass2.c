@@ -24,6 +24,11 @@
 
 // #define DEBUG_PASS2
 
+/** @brief  pass2 - fix the unreferenced inode
+ *  
+ *  @param  fsck_info: the ptr to the structure of fsck_info
+ *  @return void
+ */
 void pass2_fix_unref_inode(fsck_info_t *fsck_info)
 {
 	int inode_addr;
@@ -68,6 +73,12 @@ void pass2_fix_unref_inode(fsck_info_t *fsck_info)
 	return;
 }
 
+/** @brief  Get the parent inode
+ *  
+ *  @param  fsck_info: the ptr to the structure of fsck_info
+ *  @param  inode: the ptr to current inode
+ *  @return parent inode number
+ */
 int get_parent_inode(fsck_info_t *fsck_info, inode_t* inode)
 {
 	/* Block_size is 1024 bytes */
@@ -91,6 +102,11 @@ int get_parent_inode(fsck_info_t *fsck_info, inode_t* inode)
 	return dir_entry.inode;
 }
 
+/** @brief  Dump the infomation of directory
+ *  
+ *  @param  dir_entry: the directory entry
+ *  @return void
+ */
 void dump_dir_entry(dir_entry_t dir_entry)
 {	
 	printf("\n********** dir_entry **************\n");
@@ -98,36 +114,49 @@ void dump_dir_entry(dir_entry_t dir_entry)
 	printf("** dir_entry.name_len = %d\n", (int) dir_entry.name_len);
 	printf("** dir_entry.file_type = %d\n", (int) dir_entry.file_type);
 	printf("** dir_entry.rec_len = %d\n", (int) dir_entry.rec_len);
-	//printf("** dir_entry.name = %s\n", (int)entry[i].bg_free_inodes_count);
 	printf("********************************************\n");
 	
 	return;
 }
 
+/** @brief  Add into lost and found directory
+ *  
+ *  @param  dir_entry: the directory entry
+ *  @param  inode_num: the index of inode 
+ *  @return void
+ */
 int add_lostfound(fsck_info_t *fsck_info, int inode_num)
 {
 	inode_t inode;
 	int inode_addr = 0;
 	int block_size = get_block_size(&fsck_info->sblock);
-	/* get inode addr (in byte) from inode number */
+	
+	/* Get inode addr (in byte) from inode number */
 	inode_addr = compute_inode_addr(fsck_info, inode_num);
 	
-	/* read inode information from inode table entry */
+	/* Read inode information from inode table entry */
 	read_bytes(inode_addr, sizeof(inode_t), &inode);
 
 	dir_entry_t dir_entry;
-	/* inode number */
+	
+	/* Inode number */
 	dir_entry.inode = inode_num;
-	/* name is inode_number */
+	
+	/* Name is inode_number */
 	sprintf(dir_entry.name, "%d%c", inode_num, '\0');
 	dir_entry.name_len = strlen(dir_entry.name) - 1;
 	
-	/* type */
+	/* Type */
 	dir_entry.file_type = gen_filetype(inode.i_mode);
 
 	int lostfoud_inode = get_inode(fsck_info, "/lost+found");
-	uint32_t base = get_dir_entry_addr(fsck_info, lostfoud_inode, NAME_OFFSET + dir_entry.name_len);
-	//printf("lostfoud_inode:%d base:%d\n", lostfoud_inode, (int)base);
+	uint32_t base = get_dir_entry_addr(fsck_info, 
+		lostfoud_inode, NAME_OFFSET + dir_entry.name_len);
+
+#ifdef DEBUG_PASS2
+	printf("lostfoud_inode:%d base:%d\n", lostfoud_inode, (int)base);
+#endif
+
 	int pt_base = fsck_info->pt.start_sec * SECT_SIZE;
 	dir_entry.rec_len = (base - pt_base - 1)/ block_size * block_size 
 						+ block_size - base + pt_base;
@@ -198,7 +227,8 @@ int get_inode(fsck_info_t *fsck_info, const char* filepath)
 
 		/* If this isn't a directory, print error */
 		if(!EXT2_ISDIR(inode.i_mode)){
-			fprintf(stderr, "ERROR: Please check if the path is a directory!\n");
+			fprintf(stderr, 
+				"ERROR: Please check if the path is a directory!\n");
 			return -1;
 		}
 		
@@ -223,7 +253,7 @@ int get_inode(fsck_info_t *fsck_info, const char* filepath)
 		/* If not found, search in indirect block */
 		if(!found && inode.i_block[EXT2_IND_BLOCK] > 0)
 		{
-			read_bytes(pt_start_addr + inode.i_block[EXT2_IND_BLOCK] * block_size, 
+			read_bytes(pt_start_addr+inode.i_block[EXT2_IND_BLOCK]*block_size, 
 			block_size, buf);
 			if((ret = search_indirect_blk(fsck_info, (uint32_t*)buf, 
 				filename)) > 0){
@@ -233,7 +263,7 @@ int get_inode(fsck_info_t *fsck_info, const char* filepath)
 		/* If still not found, search in d_indirect block */
 		if(!found && inode.i_block[EXT2_DIND_BLOCK] > 0)
 		{
-			read_bytes(pt_start_addr + inode.i_block[EXT2_DIND_BLOCK] * block_size, 
+			read_bytes(pt_start_addr+inode.i_block[EXT2_DIND_BLOCK]*block_size, 
 			block_size, buf);
 			if((ret = search_dindirect_blk(fsck_info, (uint32_t*)buf, 
 				filename)) > 0){
@@ -243,7 +273,7 @@ int get_inode(fsck_info_t *fsck_info, const char* filepath)
 		/* if still not found, search in t_indirect block */
 		if(!found && inode.i_block[EXT2_TIND_BLOCK] > 0)
 		{
-			read_bytes(pt_start_addr + inode.i_block[EXT2_TIND_BLOCK] * block_size, 
+			read_bytes(pt_start_addr+inode.i_block[EXT2_TIND_BLOCK]*block_size, 
 				block_size, buf);
 			if((ret = search_tindirect_blk(fsck_info, (uint32_t*)buf, 
 				filename)) > 0){
@@ -419,8 +449,10 @@ uint32_t search_addr_in_direct_blk( fsck_info_t *fsck_info,
 	while(1){
 		dir_entry.rec_len = *(__u16*)(buf + dir_entry_offset + REC_LEN_OFFSET);
 		dir_entry.name_len = *(__u8*)(buf + dir_entry_offset + NAME_LEN_OFFSET);
-		dir_entry.file_type = *(__u8*)(buf + dir_entry_offset + FILE_TYPE_OFFSET);
-		memcpy(dir_entry.name, buf + dir_entry_offset + NAME_OFFSET, dir_entry.name_len);
+		dir_entry.file_type = *(__u8*)(buf + 
+			dir_entry_offset + FILE_TYPE_OFFSET);
+		memcpy(dir_entry.name, 
+			buf + dir_entry_offset + NAME_OFFSET, dir_entry.name_len);
 		dir_entry.name[dir_entry.name_len] = '\0';
 		
 		if (dir_entry_offset + dir_entry.rec_len >= block_size)
@@ -437,7 +469,8 @@ uint32_t search_addr_in_direct_blk( fsck_info_t *fsck_info,
 		ret = (disk_offset + dir_entry_offset + NAME_OFFSET + name_size);
 		dir_entry.rec_len = NAME_OFFSET + name_size;
 		dir_entry.inode = *(__u32*)(buf + dir_entry_offset);
-		memcpy(dir_entry.name, buf + dir_entry_offset + NAME_OFFSET, dir_entry.name_len);
+		memcpy(dir_entry.name, 
+			buf + dir_entry_offset + NAME_OFFSET, dir_entry.name_len);
 		dir_entry.name[dir_entry.name_len] = '\0';
 		
 		write_bytes(disk_offset + dir_entry_offset, 

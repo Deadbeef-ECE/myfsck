@@ -24,18 +24,17 @@ void trav_direct_blk(fsck_info_t *fsck_info,
 void trav_indirect_blk( fsck_info_t* fsck_info,
                     	uint32_t current_dir, 
                     	uint32_t parent_dir,
-						uint32_t* singly_buf);
+						uint32_t* indirect_buf);
 
 void trav_dindirect_blk(fsck_info_t* fsck_info,
                     	uint32_t current_dir, 
                     	uint32_t parent_dir,
-						uint32_t* doubly_buf); 
+						uint32_t* dindirect_buf); 
 
 void trav_tindirect_blk(fsck_info_t* fsck_info,
                      	uint32_t current_dir, 
                      	uint32_t parent_dir,
-						uint32_t* triply_buf);
-
-
+						uint32_t* tindirect_buf);
 
 #endif /* !_PASS1_H_ */
+

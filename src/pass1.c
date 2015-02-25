@@ -36,7 +36,7 @@ void pass1_correct_dir(fsck_info_t *fsck_info)
 	return;
 }
 
-/** @brief  Wrapper function for pass1
+/** @brief  Traversal the directory
  *  
  *  @param  fsck_info: the ptr to the structure of fsck_info
  *  @param  inode_num: current inode number
@@ -125,8 +125,10 @@ void trav_direct_blk(fsck_info_t *fsck_info,
 		dir_entry.inode = *(__u32*)(buf + dir_entry_offset);
 		dir_entry.rec_len = *(__u16*)(buf + dir_entry_offset + REC_LEN_OFFSET);
 		dir_entry.name_len = *(__u8*)(buf + dir_entry_offset + NAME_LEN_OFFSET);
-		dir_entry.file_type = *(__u8*)(buf + dir_entry_offset + FILE_TYPE_OFFSET);
-		memcpy(dir_entry.name, buf + dir_entry_offset + NAME_OFFSET, dir_entry.name_len);
+		dir_entry.file_type = 
+		*(__u8*)(buf + dir_entry_offset + FILE_TYPE_OFFSET);
+		memcpy(dir_entry.name, 
+			buf + dir_entry_offset + NAME_OFFSET, dir_entry.name_len);
 		dir_entry.name[dir_entry.name_len + 1] = '\0';
 		
 		/* Check '.' entry */
@@ -181,21 +183,30 @@ void trav_direct_blk(fsck_info_t *fsck_info,
 	return;
 }
 
+/** @brief  Traversal the indirect block
+ *  
+ *  @param  fsck_info: the ptr to the structure of fsck_info
+ *  @param  current_dir: current directory
+ *  @param  parent_dir: parent directory
+ *  @param  indirect_buf: block content used to parse
+ *
+ *  @return void
+ */
 void trav_indirect_blk( fsck_info_t* fsck_info,
                     	uint32_t current_dir, 
                     	uint32_t parent_dir,
-						uint32_t* singly_buf)
+						uint32_t* indirect_buf)
 {
 	int block_size = get_block_size(&fsck_info->sblock);
 	uint8_t direct_buf[block_size];
 	int i = 0;
-	for(; i < (block_size / 4); i++)
+	for(; i < block_size / 4; i++)
 	{
-		if (singly_buf[i] == 0)
+		if (indirect_buf[i] == 0)
 			break;
 
 		int disk_offset = fsck_info->pt.start_sec * SECT_SIZE 
-						+ singly_buf[i] * block_size;
+						+ indirect_buf[i] * block_size;
 		read_bytes(disk_offset, block_size, direct_buf);
 
 		trav_direct_blk(fsck_info, disk_offset, 1, 
@@ -204,48 +215,64 @@ void trav_indirect_blk( fsck_info_t* fsck_info,
 	return;
 }
 
-
+/** @brief  Traversal the doubly indirect block
+ *  
+ *  @param  fsck_info: the ptr to the structure of fsck_info
+ *  @param  current_dir: current directory
+ *  @param  parent_dir: parent directory
+ *  @param  dindirect_buf: block content used to parse
+ *
+ *  @return void
+ */
 void trav_dindirect_blk(fsck_info_t* fsck_info,
                     	uint32_t current_dir, 
                     	uint32_t parent_dir,
-						uint32_t* doubly_buf) 
+						uint32_t* dindirect_buf) 
 {
 	int block_size = get_block_size(&fsck_info->sblock);
-	uint32_t singly_buf[block_size];
+	uint32_t indirect_buf[block_size];
 
 	int i = 0;
-	for(; i < (block_size / 4); i++)
+	for(; i < block_size / 4; i++)
 	{
-		if (doubly_buf[i] == 0)
+		if (dindirect_buf[i] == 0)
 			break;
 		int disk_offset = fsck_info->pt.start_sec * SECT_SIZE 
-						+ doubly_buf[i] * block_size;
+						+ dindirect_buf[i] * block_size;
 
-		read_bytes(disk_offset, block_size, singly_buf);
+		read_bytes(disk_offset, block_size, indirect_buf);
 
-		trav_indirect_blk(fsck_info, current_dir, parent_dir, singly_buf);
+		trav_indirect_blk(fsck_info, current_dir, parent_dir, indirect_buf);
 	}
 	return;
 }
 
+/** @brief  Traversal the tripely indirect block
+ *  
+ *  @param  fsck_info: the ptr to the structure of fsck_info
+ *  @param  current_dir: current directory
+ *  @param  parent_dir: parent directory
+ *  @param  tindirect_buf: block content used to parse
+ *
+ *  @return void
+ */
 void trav_tindirect_blk(fsck_info_t* fsck_info,
                      	uint32_t current_dir, 
                      	uint32_t parent_dir,
-						uint32_t* triply_buf) 
+						uint32_t* tindirect_buf) 
 {
 	int block_size = get_block_size(&fsck_info->sblock);
-	uint32_t doubly_buf[block_size];
+	uint32_t dindirect_buf[block_size];
 	int i = 0;
-	for(; i < (block_size / 4); i++)
+	for(; i < block_size / 4; i++)
 	{
-		if (triply_buf[i] == 0)
+		if (tindirect_buf[i] == 0)
 			break;
 		int disk_offset = fsck_info->pt.start_sec * SECT_SIZE 
-						+ triply_buf[i] * block_size;
+						+ tindirect_buf[i] * block_size;
 
-		read_bytes(disk_offset, block_size, doubly_buf);
-		trav_dindirect_blk(fsck_info, current_dir, parent_dir, doubly_buf);
+		read_bytes(disk_offset, block_size, dindirect_buf);
+		trav_dindirect_blk(fsck_info, current_dir, parent_dir, dindirect_buf);
 	}
 	return;
 }
-// 
