@@ -11,8 +11,11 @@
 #include "partition.h"
 #include "readwrite.h"
 #include "ext2_fs.h"
+#include "pass1.h"
 
 void pass3_fix_link_count(fsck_info_t *fsck_info){
+	clear_local_inode_map(fsck_info);
+	trav_dir(fsck_info, EXT2_ROOT_INO, EXT2_ROOT_INO);
 	int inode_addr;
 	inode_t inode;
 	int i = 1;

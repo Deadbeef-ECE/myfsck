@@ -13,22 +13,6 @@
 #include "ext2_fs.h"
 #include "pass4.h"
 
-int ispowerof(int s, int a)
-{
-	if (s <= 0 || a <= 0)
-		return 0;
-	while (1)
-	{
-		if (s <= a)
-			break;
-		s = s / a;
-	}
-	if (s % a == 0)
-		return 1;
-	else
-		return 0;
-}
-
 void pass4_fix_block_bitmap(fsck_info_t* fsck_info)
 {
 	int groups_num = get_groups_num(&fsck_info->sblock);
