@@ -17,12 +17,9 @@ void pass2_fix_unref_inode(fsck_info_t *fsck_info)
 {
 	int inode_addr;
 	inode_t inode;
-	//int i;
-	int i, j;
+	int i;
 	int parent_inode = 0;
-	int parent_missing = 0;
 	int inodes_num = get_inodes_num(&fsck_info->sblock);
-	int num = 0;
 	/* get number of referenced inodes */
 	for (i = 1; i <= inodes_num; i++)
 	{
@@ -33,76 +30,27 @@ void pass2_fix_unref_inode(fsck_info_t *fsck_info)
 		read_bytes(inode_addr, sizeof(inode_t), &inode);
 		
 		if (fsck_info->inode_map[i] == 0 && inode.i_links_count > 0)
-		// {
-		// 	// If not a directory, put it into lost+found
-		// 	if (!EXT2_ISDIR(inode.i_mode)){
-		// 		printf("putting %d into lost+found\n", i);
-		// 		add_lostfound(fsck_info, i);
-		// 	}else{
-		// 		parent_inode = get_parent_inode(fsck_info, &inode);
-		// 		//printf("parent inode:%d\n", parent_inode);
-		// 		/* get inode addr (in byte) from inode number */
-		// 		int p_inode_addr = compute_inode_addr(fsck_info, parent_inode);
-		// 		inode_t p_inode;
-		// 		/* read inode information from inode table entry */
-		// 		read_bytes(p_inode_addr, sizeof(inode_t), &p_inode);
-		// 		if(!(fsck_info->inode_map[parent_inode] == 0 
-		// 			&& p_inode.i_links_count > 0)){
-		// 			printf("putting[%d] into lost+found\n", i);
-		// 			add_lostfound(fsck_info, i);
-		// 		}
-		// 	}
-		// }
-		num++;
-	}
-
-	/* collect missing inodes, put them into uref_inodes array */
-	int uref_inodes[num+1];
-	int cnt = 1;
-	for (i = 1; i <= inodes_num; i++)
-	{
-		/* get inode addr (in byte) from inode number */
-		inode_addr = compute_inode_addr(fsck_info, i);
-		
-		/* read inode information from inode table entry */
-		read_bytes(inode_addr, sizeof(inode_t), &inode);
-		
-		if (fsck_info->inode_map[i] == 0 && inode.i_links_count > 0)
-			uref_inodes[cnt++] = i;
-	}
-	
-	/* begin fixings */
-	for (i = 1; i <= num; i++)
-	{
-		int uref_i = uref_inodes[i];
-		/* get inode addr (byte) from inode number */
-		inode_addr = compute_inode_addr(fsck_info, uref_i);
-		
-		//read inode information from inode table entry 
-		read_bytes(inode_addr, sizeof(inode_t), &inode);
-
-		/* get its file type, if it's not dir, put it into lost+found */
-		if (!EXT2_ISDIR(inode.i_mode))
 		{
-			printf("putting %d into lost+found\n", uref_i);
-			add_lostfound(fsck_info, uref_i);
-		}else{
-			parent_inode = get_parent_inode(fsck_info, &inode);
-			parent_missing = 0;
-			for (j = 1; j <= num && j != i; j++)
-			{
-				if (parent_inode == uref_inodes[j]){	
-					parent_missing = 1;
-					break;
+			// If not a directory, put it into lost+found
+			if (!EXT2_ISDIR(inode.i_mode)){
+				printf("putting %d into lost+found\n", i);
+				add_lostfound(fsck_info, i);
+			}else{
+				parent_inode = get_parent_inode(fsck_info, &inode);
+				/* get inode addr (in byte) from inode number */
+				int p_inode_addr = compute_inode_addr(fsck_info, parent_inode);
+				inode_t p_inode;
+				/* read inode information from inode table entry */
+				read_bytes(p_inode_addr, sizeof(inode_t), &p_inode);
+				if(!(fsck_info->inode_map[parent_inode] == 0 
+					&& p_inode.i_links_count > 0)){
+					printf("putting[%d] into lost+found\n", i);
+					add_lostfound(fsck_info, i);
 				}
-			}
-			if (!parent_missing)
-			{
-				printf("putting [%d] into lost+found\n", uref_i);
-				add_lostfound(fsck_info, uref_i);
 			}
 		}
 	}
+	return;
 }
 
 int get_parent_inode(fsck_info_t *fsck_info, inode_t* inode)
@@ -164,20 +112,19 @@ int add_lostfound(fsck_info_t *fsck_info, int inode_num)
 
 	int lostfoud_inode = get_inode(fsck_info, "/lost+found");
 	uint32_t base = get_dir_entry_addr(fsck_info, lostfoud_inode, NAME_OFFSET + dir_entry.name_len);
-	printf("base:%d\n", (int)base);
+	//printf("lostfoud_inode:%d base:%d\n", lostfoud_inode, (int)base);
 	int pt_base = fsck_info->pt.start_sec * SECT_SIZE;
 	dir_entry.rec_len = (base - pt_base - 1)/ block_size * block_size 
 						+ block_size - base + pt_base;
 	
 	if (base < 0){
-		printf("why\n");
 		return -1;
 	}
 
 	int entry_size = NAME_OFFSET + dir_entry.name_len;
 
-	dump_dir_entry(dir_entry);
-	printf("entrysize:%d\n\n\n", entry_size);
+	//dump_dir_entry(dir_entry);
+	//printf("entrysize:%d\n\n\n", entry_size);
 	write_bytes(base, entry_size, &dir_entry);
 
 	return 0;
@@ -214,7 +161,7 @@ int get_inode(fsck_info_t *fsck_info, const char* filepath)
 	path[len] = '\0';
 
 	/* if path is root '/', return inode number 2 */
-	if(strncmp("/", path, 1) == 0)
+	if(strcmp("/", path) == 0)
 		return EXT2_ROOT_INO;
 	
 	int inode_num = EXT2_ROOT_INO; /* root inode: 2 */

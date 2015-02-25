@@ -12,6 +12,7 @@
 #include "readwrite.h"
 #include "ext2_fs.h"
 #include "pass2.h"
+#include "pass3.h"
 
 //#define DEBUG_DESC_TABLE
 
@@ -128,9 +129,10 @@ void do_fix(int fix_pt_num)
 	
 	pass2_fix_unref_inode(fsck_info);
 
-	//printf("why?\n");
 	clear_local_inode_map(fsck_info);
 	trav_dir(fsck_info, EXT2_ROOT_INO, EXT2_ROOT_INO);
+
+	pass3_fix_link_count(fsck_info);
 
 	return;
 }
