@@ -24,7 +24,7 @@ void pass3_fix_link_count(fsck_info_t *fsck_info){
 		
 		if (fsck_info->inode_map[i] != inode.i_links_count)
 		{
-			fprintf(stderr, "Error: inode %d link count", i);
+			fprintf(stderr, "Error: inode %d link count->", i);
 			fprintf(stderr, "Should be: %d but has: %d\n",
 				    fsck_info->inode_map[i], inode.i_links_count);
 			inode.i_links_count = fsck_info->inode_map[i];

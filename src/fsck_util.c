@@ -13,6 +13,7 @@
 #include "ext2_fs.h"
 #include "pass2.h"
 #include "pass3.h"
+#include "pass4.h"
 
 //#define DEBUG_DESC_TABLE
 
@@ -133,6 +134,8 @@ void do_fix(int fix_pt_num)
 	trav_dir(fsck_info, EXT2_ROOT_INO, EXT2_ROOT_INO);
 
 	pass3_fix_link_count(fsck_info);
+
+	pass4_fix_block_bitmap(fsck_info);
 
 	return;
 }
