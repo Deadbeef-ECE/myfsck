@@ -1,3 +1,11 @@
+/* @file: partition.h
+ *
+ * @breif: Macros and data strutures for patition
+ *
+ * @author: Yuhang Jiang (yuhangj@andrew.cmu.edu)
+ * @bug: No known bugs
+ */
+
 #ifndef _PARTITION_H_
 #define _PARTITION_H_
 
@@ -10,6 +18,7 @@
 #define EXTEND		0x05
 #define LINUX_SWAP	0x82
 
+/** Struct of partition */
 typedef struct partition{
 	uint32_t pt_num;
 	uint32_t type;

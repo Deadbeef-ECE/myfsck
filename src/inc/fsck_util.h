@@ -1,3 +1,11 @@
+/* @file: fsck_util.h
+ *
+ * @breif: Macros and data strutures for myfsck
+ *
+ * @author: Yuhang Jiang (yuhangj@andrew.cmu.edu)
+ * @bug: No known bugs
+ */
+
 #ifndef _FSCK_UTIL_H_
 #define _FSCK_UTIL_H_
 
@@ -27,7 +35,6 @@
 #define FIX_SUCC	0
 #define FIX_FAIL	-1
 
-
 #define EXT2_ISSOCK(m) (((m)&(0xf000)) == (EXT2_S_IFSOCK))
 #define EXT2_ISLNK(m) (((m)&(0xf000)) == (EXT2_S_IFLNK))
 #define EXT2_ISREG(m) (((m)&(0xf000)) == (EXT2_S_IFREG))
@@ -36,6 +43,7 @@
 #define EXT2_ISCHR(m) (((m)&(0xf000)) == (EXT2_S_IFCHR))
 #define EXT2_ISFIFO(m) (((m)&(0xf000)) == (EXT2_S_IFIFO))
 
+/** Macros for fsck information */
 typedef struct fsck_info{
 	sblock_t sblock;
 	partition_t pt;
@@ -45,10 +53,17 @@ typedef struct fsck_info{
 	uint8_t* bitmap;
 }fsck_info_t;
 
+/** Functions and helper function for parsing partition information */
 int parse_pt_info(partition_t *pt, uint32_t pt_num);
 void print_pt_info(partition_t *pt);
+
+/** Function for parsing super-block information */
 int parse_sblock(fsck_info_t *fsck_info, uint32_t pt_num);
+
+/** Function for parsing block group descriptor table information */
 int parse_blkgrp_desc_tb(fsck_info_t *fsck_info, uint32_t pt_num);
+
+/** Helper functions for myfsck */
 int fsck_info_init(fsck_info_t *fsck_info, uint32_t pt_num);
 void destroy_fsck_info(fsck_info_t *fsck_info);
 void clear_local_inode_map(fsck_info_t *fsck_info);

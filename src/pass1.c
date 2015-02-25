@@ -1,3 +1,11 @@
+/* @file: pass1.c
+ *
+ * @breif: Functions to validate pass1
+ *
+ * @author: Yuhang Jiang (yuhangj@andrew.cmu.edu)
+ * @bug: No known bugs
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +24,8 @@
 #include "pass3.h"
 #include "pass4.h"
 
-void pass1_correct_dir(fsck_info_t *fsck_info, uint32_t inode_num, uint32_t parent){
+void pass1_correct_dir(fsck_info_t *fsck_info, uint32_t inode_num, uint32_t parent)
+{
 	clear_local_inode_map(fsck_info);
 	trav_dir(fsck_info, inode_num, parent);
 	return;
@@ -27,10 +36,10 @@ void trav_dir(fsck_info_t *fsck_info, uint32_t inode_num, uint32_t parent)
 	inode_t inode;
 	int inode_addr = compute_inode_addr(fsck_info, inode_num);
 
-	//get inode_addr of certain inode_num
+	/* get inode_addr of certain inode_num */
 	read_bytes(inode_addr, sizeof(inode_t), &inode);
 
-	// Check if this is a directory or not
+	/* Check if this is a directory or not */
 	if(!EXT2_ISDIR(inode.i_mode))
 		return;
 
@@ -44,11 +53,13 @@ void trav_dir(fsck_info_t *fsck_info, uint32_t inode_num, uint32_t parent)
 		int disk_offset = fsck_info->pt.start_sec * SECT_SIZE +
 							inode.i_block[i] * block_size;
 		
-		// Read one direct block of inode
+		/* Read one direct block of inode */
 		read_bytes(disk_offset, block_size, buf);
 
+		/* Traversal the direct block */
 		trav_direct_blk(fsck_info, disk_offset, i, buf, inode_num, parent);
 	}
+
 	/* Traversal indirect block */
 	read_bytes(fsck_info->pt.start_sec * SECT_SIZE + 
 				inode.i_block[EXT2_IND_BLOCK] * block_size, 
@@ -97,8 +108,7 @@ void trav_direct_blk(fsck_info_t *fsck_info,
 		/* check '.' entry */
 		if (cnt == 1 && iblock_num == 0)
 		{
-			if(//strcmp(dir_entry.name, ".") != 0 || 
-			          dir_entry.inode != current_dir)
+			if(dir_entry.inode != current_dir)
 			{
 				printf("error in \".\" of dir %d should be %d\n", 
 				        dir_entry.inode, current_dir);
@@ -113,8 +123,7 @@ void trav_direct_blk(fsck_info_t *fsck_info,
 		/* check '..' entry */
 		if (cnt == 2 && iblock_num == 0)
 		{
-			if(//strcmp(dir_entry.name, "..") != 0 || 
-			          dir_entry.inode != parent_dir)
+			if(dir_entry.inode != parent_dir)
 			{
 				printf("error \"..\" in dir %d, should be %d\n", 
 				        current_dir, parent_dir);
@@ -134,9 +143,6 @@ void trav_direct_blk(fsck_info_t *fsck_info,
 		if (dir_entry.inode <= inodes_num)
 		{
 			fsck_info->inode_map[dir_entry.inode] += 1;
-		}
-		if(dir_entry.inode > inodes_num){
-			fprintf(stderr, "WTF?=\n");
 		}
 		
 		/* recursively traverse sub-directory in this folder */

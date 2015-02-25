@@ -1,3 +1,11 @@
+/* @file: pass3.h
+ *
+ * @breif: Functions for myfsck pass3
+ *
+ * @author: Yuhang Jiang (yuhangj@andrew.cmu.edu)
+ * @bug: No known bugs
+ */
+
 #ifndef _PASS3_H_
 #define _PASS3_H_
 
