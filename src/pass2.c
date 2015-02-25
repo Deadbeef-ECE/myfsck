@@ -12,9 +12,12 @@
 #include "readwrite.h"
 #include "ext2_fs.h"
 #include "pass2.h"
+#include "pass1.h"
 
 void pass2_fix_unref_inode(fsck_info_t *fsck_info)
 {
+	clear_local_inode_map(fsck_info);
+	trav_dir(fsck_info, EXT2_ROOT_INO, EXT2_ROOT_INO);
 	int inode_addr;
 	inode_t inode;
 	int i;

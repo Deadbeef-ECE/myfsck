@@ -40,9 +40,7 @@ int do_fsck(partition_t *pt, int fix_pt_num){
 }
 
 int main (int argc, char **argv)
-{
-    //printf("Hello from myfsck!\n");
-    
+{   
     char* disk_name = NULL;
     uint32_t pt_num = 0;
     uint32_t fix_pt_num = 0;
@@ -70,8 +68,6 @@ int main (int argc, char **argv)
         exit(-1);
     }
 
-    //fprintf(stdout, "get pt_num[%d] and disk_name[%s]\n", pt_num, disk_name);
-
     if((device = open(disk_name, O_RDWR)) == -1){
         fprintf(stderr, "ERROR: Cannot open the file!\n");
         exit(-1);
@@ -80,7 +76,6 @@ int main (int argc, char **argv)
     partition_t pt;
     if(fsck == 1){
         do_fsck(&pt, fix_pt_num);
-        //fsck_info_init(pt_num);
     }else{
         if(pt_num > 0){
             if(parse_pt_info(&pt, pt_num) == -1){
@@ -89,7 +84,6 @@ int main (int argc, char **argv)
                 exit(-1);
             }
             print_pt_info(&pt);
-            //do_fsck(&pt, pt_num);
         }
     }
 

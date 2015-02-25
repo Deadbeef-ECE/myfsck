@@ -24,7 +24,6 @@
 #define INIT_SUCC	0
 #define INIT_FAIL	-1
 
-
 #define EXT2_ISSOCK(m) (((m)&(0xf000)) == (EXT2_S_IFSOCK))
 #define EXT2_ISLNK(m) (((m)&(0xf000)) == (EXT2_S_IFLNK))
 #define EXT2_ISREG(m) (((m)&(0xf000)) == (EXT2_S_IFREG))
@@ -32,7 +31,6 @@
 #define EXT2_ISDIR(m) (((m)&(0xf000)) == (EXT2_S_IFDIR))
 #define EXT2_ISCHR(m) (((m)&(0xf000)) == (EXT2_S_IFCHR))
 #define EXT2_ISFIFO(m) (((m)&(0xf000)) == (EXT2_S_IFIFO))
-
 
 typedef struct fsck_info{
 	sblock_t sblock;
@@ -43,14 +41,13 @@ typedef struct fsck_info{
 	uint8_t* bitmap;
 }fsck_info_t;
 
-
 int parse_pt_info(partition_t *pt, uint32_t pt_num);
 void print_pt_info(partition_t *pt);
 int parse_sblock(fsck_info_t* fsck_info, uint32_t pt_num);
 int parse_blkgrp_desc_tb(fsck_info_t* fsck_info, uint32_t pt_num);
 int fsck_info_init(fsck_info_t *fsck_info, uint32_t pt_num);
+void clear_local_inode_map(fsck_info_t *fsck_info);
 void do_fix(int fix_pt_num);
-
 
 int get_block_size(sblock_t *sblock);
 int get_inode_size(sblock_t *sblock);
@@ -59,28 +56,9 @@ int get_blks_per_group(sblock_t *sblock);
 int get_inodes_num(sblock_t *sblock);
 int get_inds_per_group(sblock_t *sblock);
 int get_groups_num(sblock_t *sblock);
+
 void debug_sblock(fsck_info_t *fsck_info);
 void dump_grp_desc(grp_desc_t *entry, int num);
-
-void trav_dir(fsck_info_t *fsck_info, uint32_t inode_num, uint32_t parent);
 int compute_inode_addr(fsck_info_t *fsck_info, uint32_t inode_num);
-void trav_direct_blk(fsck_info_t *fsck_info, 
-					int block_offset, 
-					int iblock_num, 
-					uint8_t* buf, 
-					uint32_t current_dir, 
-					uint32_t parent_dir);
 
-void trav_indirect_blk( fsck_info_t* fsck_info,
-						uint32_t* singly_buf, 
-                    	uint32_t current_dir, 
-                    	uint32_t parent_dir);
-void trav_dindirect_blk(fsck_info_t* fsck_info,
-						uint32_t* doubly_buf, 
-                    	uint32_t current_dir, 
-                    	uint32_t parent_dir);
-void trav_tindirect_blk(fsck_info_t* fsck_info,
-						uint32_t* triply_buf, 
-                     	uint32_t current_dir, 
-                     	uint32_t parent_dir);
 #endif /* !_FSCK_UTIL_H_ */
