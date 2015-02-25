@@ -142,9 +142,9 @@ void write_sectors (int64_t start_sector, unsigned int num_sectors, void *from)
 
 /** @brief read bytes from device
  *  
- *  @param base base address 
- *  @param buf buffer to store read bytes
- *  @param buf_len length of bytes to read
+ *  @param base: base address 
+ *  @param buf_len: length of bytes to read
+ *  @param into: buffer to store read bytes
  */
 void read_bytes(int64_t base, ssize_t buf_len, void* into)
 {
@@ -166,9 +166,9 @@ void read_bytes(int64_t base, ssize_t buf_len, void* into)
 
 /** @brief write bytes to device
  *  
- *  @param base base address 
- *  @param buf source of bytes
- *  @param buf_len length of bytes to write
+ *  @param base: base address 
+ *  @param buf_len: length of bytes to write
+ *  @param from: source of bytes
  */
 void write_bytes(int64_t base, ssize_t buf_len, void* from)
 {

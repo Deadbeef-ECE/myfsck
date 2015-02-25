@@ -14,6 +14,8 @@
 #include "pass2.h"
 #include "pass1.h"
 
+// #define DEBUG_PASS2
+
 void pass2_fix_unref_inode(fsck_info_t *fsck_info)
 {
 	int inode_addr;
@@ -124,8 +126,11 @@ int add_lostfound(fsck_info_t *fsck_info, int inode_num)
 
 	int entry_size = NAME_OFFSET + dir_entry.name_len;
 
-	//dump_dir_entry(dir_entry);
-	//printf("entrysize:%d\n\n\n", entry_size);
+#ifdef DEBUG_PASS2
+	dump_dir_entry(dir_entry);
+	fprintf(stdout, "entrysize:%d\n\n\n", entry_size);
+#endif
+
 	write_bytes(base, entry_size, &dir_entry);
 
 	return 0;
@@ -386,8 +391,7 @@ uint32_t get_dir_entry_addr(fsck_info_t *fsck_info,
 		
 		/* traverse direct block[i] */
 		if((ret = search_addr_in_direct_blk(fsck_info, disk_offset, buf,
-		 entrysize)) > 0)
-		{
+		 entrysize)) > 0){
 			return ret;
 		}
 	}

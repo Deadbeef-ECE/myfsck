@@ -43,9 +43,10 @@ typedef struct fsck_info{
 
 int parse_pt_info(partition_t *pt, uint32_t pt_num);
 void print_pt_info(partition_t *pt);
-int parse_sblock(fsck_info_t* fsck_info, uint32_t pt_num);
-int parse_blkgrp_desc_tb(fsck_info_t* fsck_info, uint32_t pt_num);
+int parse_sblock(fsck_info_t *fsck_info, uint32_t pt_num);
+int parse_blkgrp_desc_tb(fsck_info_t *fsck_info, uint32_t pt_num);
 int fsck_info_init(fsck_info_t *fsck_info, uint32_t pt_num);
+void destroy_fsck_info(fsck_info_t *fsck_info);
 void clear_local_inode_map(fsck_info_t *fsck_info);
 void do_fix(int fix_pt_num);
 

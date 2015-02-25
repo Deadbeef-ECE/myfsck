@@ -16,7 +16,8 @@
 #include "pass3.h"
 #include "pass4.h"
 
-//#define DEBUG_DESC_TABLE
+// #define DEBUG_DESC_TABLE
+// #define DEBUG_PARTITION
 
 extern int device;
 
@@ -59,8 +60,11 @@ int parse_pt_info(partition_t *pt, uint32_t pt_num)
 	uint32_t first_ebr_sect = *(uint32_t*)(buf + PT_OFFSET + 
 		PT_ENTRY_SZ * (i-1) + SECT_OFFSET);
 	uint32_t cur_ebr_sect = first_ebr_sect;
-	// printf("i:%d; cur_ebr_sect:%d, first_ebr_sect:%d\n", 
-	// 	i, (int)cur_ebr_sect, (int) first_ebr_sect);
+
+#ifdef DEBUG_PARTITION
+	printf("i:%d; cur_ebr_sect:%d, first_ebr_sect:%d\n", 
+		i, (int)cur_ebr_sect, (int) first_ebr_sect);
+#endif
 
 	for(i = 5; i < pt_num; i++){
 		//Read the first ebr sector
@@ -78,11 +82,17 @@ int parse_pt_info(partition_t *pt, uint32_t pt_num)
 		 *(int*)(buf + PT_OFFSET + PT_ENTRY_SZ + SECT_OFFSET);
 	}
 
-	//printf("cur_ebr_sect:%d, first_ebr_sect:%d\n", 
-	//	(int)cur_ebr_sect, (int) first_ebr_sect);
+#ifdef DEBUG_PARTITION
+	printf("cur_ebr_sect:%d, first_ebr_sect:%d\n", 
+		(int)cur_ebr_sect, (int) first_ebr_sect);
+#endif
 
 	read_sectors(cur_ebr_sect, 1 * SECT_SIZE, buf);
-	//print_sector(buf);
+
+#ifdef DEBUG_PARTITION
+	print_sector(buf);
+#endif
+
 	pt->type = buf[PT_OFFSET + TYPE_OFFSET];
 	pt->start_sec = cur_ebr_sect + *(uint32_t*)(buf+ PT_OFFSET+ SECT_OFFSET);
 	pt->length =  *(uint32_t*)(buf+ PT_OFFSET+ LEN_OFFSET);
@@ -125,7 +135,6 @@ void do_fix(int fix_pt_num)
 		fprintf(stderr, "ERORR: Allocate memory for fsck_info->inode_map failed!\n");
 		return;
 	}
-
 	
 	pass1_correct_dir(fsck_info, EXT2_ROOT_INO, EXT2_ROOT_INO);
 	
@@ -161,6 +170,21 @@ int fsck_info_init(fsck_info_t *fsck_info, uint32_t pt_num)
 	return INIT_SUCC;
 }
 
+void destroy_fsck_info(fsck_info_t * fsck_info)
+{
+	if(fsck_info == NULL)
+		return;
+	if(fsck_info->bitmap != NULL)
+		free(fsck_info->bitmap);
+	if(fsck_info->block_map != NULL)
+		free(fsck_info->block_map);
+	if(fsck_info->inode_map != NULL)
+		free(fsck_info->inode_map);
+	if(fsck_info->blkgrp_desc_tb != NULL)
+		free(fsck_info->blkgrp_desc_tb);
+	free(fsck_info);
+	return;
+}
 
 int parse_sblock(fsck_info_t* fsck_info, uint32_t pt_num)
 {
@@ -172,7 +196,8 @@ int parse_sblock(fsck_info_t* fsck_info, uint32_t pt_num)
 int parse_blkgrp_desc_tb(fsck_info_t* fsck_info, uint32_t pt_num){
 	if(fsck_info->blkgrp_desc_tb != NULL){
 		fprintf(stdout, "free previous blkgrp_desc_tb\n");
-		free(fsck_info->blkgrp_desc_tb);
+		//free(fsck_info->blkgrp_desc_tb);
+		return PARSE_FAIL;
 	}
 
 	int size = get_groups_num(&fsck_info->sblock) * sizeof(grp_desc_t);
@@ -187,11 +212,12 @@ int parse_blkgrp_desc_tb(fsck_info_t* fsck_info, uint32_t pt_num){
 	/* read block group table from sector 4 of the partition */
 	read_sectors(fsck_info->pt.start_sec + 2048/SECT_SIZE, 
 	            size, fsck_info->blkgrp_desc_tb);
-    
-    // printf("start_sec: %d\n", fsck_info->pt.start_sec + 2048/512);
-    // printf("size: %d\n", size);
 
-	//dump_grp_desc(fsck_info->blkgrp_desc_tb, size/sizeof(grp_desc_t));
+#ifdef DEBUG_DESC_TABLE
+    printf("start_sec: %d\n", fsck_info->pt.start_sec + 2048/512);
+    printf("size: %d\n", size);
+	dump_grp_desc(fsck_info->blkgrp_desc_tb, size/sizeof(grp_desc_t));
+#endif
 
 	return PARSE_SUCC;
 }
