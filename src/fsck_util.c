@@ -115,17 +115,17 @@ void clear_local_inode_map(fsck_info_t *fsck_info){
 	return;
 }
 
-void do_fix(int fix_pt_num)
+int do_fix(int fix_pt_num)
 {
 	fsck_info_t *fsck_info = malloc(sizeof(fsck_info_t));
 	if(fsck_info == NULL){
 		fprintf(stderr, "ERORR: Allocate memory for fsck_info failed!\n");
-		return;
+		return FIX_FAIL;
 	}
 	memset(fsck_info,0, sizeof(fsck_info_t));
 	if(fsck_info_init(fsck_info, fix_pt_num) == -1){
-		free(fsck_info);
-		return;
+		destroy_fsck_info(fsck_info);
+		return FIX_FAIL;
 	}
 	
 	int inodes_num = get_inodes_num(&fsck_info->sblock);
@@ -133,7 +133,8 @@ void do_fix(int fix_pt_num)
 	
 	if(fsck_info->inode_map == NULL){
 		fprintf(stderr, "ERORR: Allocate memory for fsck_info->inode_map failed!\n");
-		return;
+		destroy_fsck_info(fsck_info);
+		return FIX_FAIL;
 	}
 	
 	pass1_correct_dir(fsck_info, EXT2_ROOT_INO, EXT2_ROOT_INO);
@@ -144,10 +145,10 @@ void do_fix(int fix_pt_num)
 
 	pass4_fix_block_bitmap(fsck_info);
 
-	return;
+	destroy_fsck_info(fsck_info);
+
+	return FIX_SUCC;
 }
-
-
 
 int fsck_info_init(fsck_info_t *fsck_info, uint32_t pt_num)
 {
@@ -307,4 +308,3 @@ void debug_sblock(fsck_info_t *fsck_info)
 	printf("********************************************\n\n");
 	return;
 }
-

@@ -22,21 +22,25 @@ void print_usage(){
 int do_fsck(partition_t *pt, int fix_pt_num){
     if(fix_pt_num >= 0){
         if(fix_pt_num >0){
-            do_fix(fix_pt_num);
+            if(do_fix(fix_pt_num) < 0)
+                return -1;
         }else if(fix_pt_num == 0){
              int i = 1;
              while(1){
                  if(parse_pt_info(pt, i) == -1)
                      break;
-                 if(pt->type == EXT_2)    
-                     do_fix(i);
+                 if(pt->type == EXT_2){
+                     if(do_fix(i) < 0)
+                        return -1;
+                 }
                  i++;
              }
         }
     }else{
         print_usage();
+        return -1;
     }
-    return -1;
+    return 0;
 }
 
 int main (int argc, char **argv)
@@ -75,7 +79,10 @@ int main (int argc, char **argv)
     
     partition_t pt;
     if(fsck == 1){
-        do_fsck(&pt, fix_pt_num);
+        if(do_fsck(&pt, fix_pt_num) < 0){
+            close(device);
+            return 0;
+        }
     }else{
         if(pt_num > 0){
             if(parse_pt_info(&pt, pt_num) == -1){

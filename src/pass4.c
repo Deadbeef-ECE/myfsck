@@ -15,7 +15,6 @@
 
 void pass4_fix_block_bitmap(fsck_info_t* fsck_info)
 {
-	printf("pass4\n");
 	int groups_num = get_groups_num(&fsck_info->sblock);
 	int block_size = get_block_size(&fsck_info->sblock);
 	int inode_size = get_inode_size(&fsck_info->sblock);
@@ -31,7 +30,7 @@ void pass4_fix_block_bitmap(fsck_info_t* fsck_info)
 	fsck_info->block_map = (int *)malloc(sizeof(int) * total);
 	if(fsck_info->block_map == NULL){
 		fprintf(stderr, "ERROR: Allocate memory failed for block_map\n");
-		//destroy_fsck_info(fsck_info);
+		destroy_fsck_info(fsck_info);
 		return;
 	}
 	init_local_blkmap(fsck_info, total);
@@ -40,15 +39,15 @@ void pass4_fix_block_bitmap(fsck_info_t* fsck_info)
 	// First two blocks are superblock and boot record block
 	metadata_size += 2048;
 	// Add the size of block group descriptor table
-	metadata_size +=  sizeof(grp_desc_t) * groups_num;
+	metadata_size += sizeof(grp_desc_t) * groups_num;
 	int metadata_num = (metadata_size - 1)/block_size + 1;
 
 	for(i = 0; i < metadata_num; i++){
 		fsck_info->block_map[i] = 1;
 	}
 
-	for(i = 0; i < groups_num; i++){
-		printf("i:%d, groups_num:%d\n", i, groups_num);
+	for(i = 0; i < groups_num; i++)
+	{
 		/* Block bitmap occupy one block */
 		int blk_bitmap_addr = fsck_info->blkgrp_desc_tb[i].bg_block_bitmap;
 		fsck_info->block_map[blk_bitmap_addr] = 1;
@@ -81,7 +80,7 @@ void pass4_fix_block_bitmap(fsck_info_t* fsck_info)
 	fsck_info->bitmap = (uint8_t *)malloc(block_size);
 	if(fsck_info->bitmap == NULL){
 		fprintf(stderr, "ERROR: Allocate memory for fsck_info->bitmap failed!\n");
-		//destroy_fsck_info(fsck_info);
+		destroy_fsck_info(fsck_info);
 		return;
 	}
 	int num = 0;
@@ -101,10 +100,9 @@ void pass4_fix_block_bitmap(fsck_info_t* fsck_info)
 			if(check_bit_map(fsck_info, i) 
 				!= check_local_blk_map(fsck_info, block_index))
 			{
-				printf("ERROR: Block bitmap %d in group %d wrong, got %d\n",
-					    i, cur_group_num, fsck_info->block_map[block_index - 1]);
+				printf("ERROR: Block bitmap %d in group %d wrong\n", i, cur_group_num);
 				fsck_info->bitmap[i/8] = correct_bit_map(fsck_info, i) | correct_block_map(fsck_info, block_index, i);
-
+				printf("should be: %d\n", (int)fsck_info->bitmap[i/8]);
 			}
 		}
 		write_bytes((int64_t)disk_offset, block_size, fsck_info->bitmap);
@@ -122,11 +120,13 @@ uint8_t check_bit_map(fsck_info_t *fsck_info, int block_index)
 	return 0;
 }
 
-uint8_t correct_bit_map(fsck_info_t *fsck_info, int block_index){
+uint8_t correct_bit_map(fsck_info_t *fsck_info, int block_index)
+{
 	return fsck_info->bitmap[block_index/8] & (~(1<<(block_index%8)));
 }
 
-uint8_t correct_block_map(fsck_info_t *fsck_info, int block_index, int i){
+uint8_t correct_block_map(fsck_info_t *fsck_info, int block_index, int i)
+{
 	return fsck_info->block_map[block_index]<<(i%8);
 }
 
@@ -138,7 +138,8 @@ uint8_t check_local_blk_map(fsck_info_t *fsck_info, int block_index)
 	return 0;
 }
 
-int get_last_blk_bum(int num, int blks_per_group){
+int get_last_blk_bum(int num, int blks_per_group)
+{
 	if(num < blks_per_group)
 		return num - FIRST_BLK_OFFSET;
 	return blks_per_group;
@@ -190,7 +191,6 @@ void mark_block(fsck_info_t *fsck_info, int inode_num)
 		mark_indirect_block(fsck_info, (uint32_t*)buf);
 	}
 	/* Traversal dindirect block */
-
 	if (inode.i_block[EXT2_DIND_BLOCK] > 0)
 	{
 		fsck_info->block_map[inode.i_block[EXT2_DIND_BLOCK]] = 1;

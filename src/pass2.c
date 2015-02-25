@@ -36,7 +36,7 @@ void pass2_fix_unref_inode(fsck_info_t *fsck_info)
 		{
 			// If not a directory, put it into lost+found
 			if (!EXT2_ISDIR(inode.i_mode)){
-				printf("putting %d into lost+found\n", i);
+				printf("Find ERROR: putting %d into /lost+found\n", i);
 				add_lostfound(fsck_info, i);
 			}else{
 				parent_inode = get_parent_inode(fsck_info, &inode);
@@ -47,7 +47,7 @@ void pass2_fix_unref_inode(fsck_info_t *fsck_info)
 				read_bytes(p_inode_addr, sizeof(inode_t), &p_inode);
 				if(!(fsck_info->inode_map[parent_inode] == 0 
 					&& p_inode.i_links_count > 0)){
-					printf("putting[%d] into lost+found\n", i);
+					printf("Find ERROR: putting[%d] into /lost+found\n", i);
 					add_lostfound(fsck_info, i);
 				}
 			}
@@ -120,9 +120,8 @@ int add_lostfound(fsck_info_t *fsck_info, int inode_num)
 	dir_entry.rec_len = (base - pt_base - 1)/ block_size * block_size 
 						+ block_size - base + pt_base;
 	
-	if (base < 0){
+	if (base < 0)
 		return -1;
-	}
 
 	int entry_size = NAME_OFFSET + dir_entry.name_len;
 
@@ -217,7 +216,6 @@ int get_inode(fsck_info_t *fsck_info, const char* filepath)
 			if((ret = search_indirect_blk(fsck_info, (uint32_t*)buf, 
 				filename)) > 0){
 				found = 1;
-			 	//break;
 			}
 		}
 		/* If still not found, search in d_indirect block */
@@ -228,7 +226,6 @@ int get_inode(fsck_info_t *fsck_info, const char* filepath)
 			if((ret = search_dindirect_blk(fsck_info, (uint32_t*)buf, 
 				filename)) > 0){
 				found = 1;
-				//break;
 			}
 		}
 		/* if still not found, search in t_indirect block */
@@ -239,7 +236,6 @@ int get_inode(fsck_info_t *fsck_info, const char* filepath)
 			if((ret = search_tindirect_blk(fsck_info, (uint32_t*)buf, 
 				filename)) > 0){
 				found = 1;
-				//break;
 			}
 		}
 		/* Cannot find the directory according to the filename */

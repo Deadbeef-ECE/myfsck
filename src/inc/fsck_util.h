@@ -24,6 +24,10 @@
 #define INIT_SUCC	0
 #define INIT_FAIL	-1
 
+#define FIX_SUCC	0
+#define FIX_FAIL	-1
+
+
 #define EXT2_ISSOCK(m) (((m)&(0xf000)) == (EXT2_S_IFSOCK))
 #define EXT2_ISLNK(m) (((m)&(0xf000)) == (EXT2_S_IFLNK))
 #define EXT2_ISREG(m) (((m)&(0xf000)) == (EXT2_S_IFREG))
@@ -48,7 +52,7 @@ int parse_blkgrp_desc_tb(fsck_info_t *fsck_info, uint32_t pt_num);
 int fsck_info_init(fsck_info_t *fsck_info, uint32_t pt_num);
 void destroy_fsck_info(fsck_info_t *fsck_info);
 void clear_local_inode_map(fsck_info_t *fsck_info);
-void do_fix(int fix_pt_num);
+int do_fix(int fix_pt_num);
 
 int get_block_size(sblock_t *sblock);
 int get_inode_size(sblock_t *sblock);
